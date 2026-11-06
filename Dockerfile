@@ -3,22 +3,19 @@ FROM golang:1.24 AS builder
 
 WORKDIR /app
 
-# Copy go.mod (only needed if you have go.mod)
-COPY go.mod ./
-RUN go mod tidy || true
+COPY go.mod go.sum ./
+RUN go mod download
 
-# Copy source code
 COPY . .
-
-# Build the app
-RUN go build -o taskmanager main.go
+RUN CGO_ENABLED=0 go build -o taskmanager .
 
 # Final stage
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 WORKDIR /root/
 
 COPY --from=builder /app/taskmanager .
 
-# Default command -> run "list"
-CMD ["./taskmanager", "add ", "Learn GO", "2025-09-25", "Programming"]
+# Run interactively with: docker run -it --rm taskmanager
+# Without a TTY it prints the usage; pass a command for one-shot use, e.g. "list".
+ENTRYPOINT ["./taskmanager"]
